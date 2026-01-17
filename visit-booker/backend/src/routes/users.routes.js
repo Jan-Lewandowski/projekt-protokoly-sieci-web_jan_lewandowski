@@ -1,9 +1,7 @@
 import { Router } from "express";
+import { users, generateUserId } from "../data/users.data.js";
 
 const usersRouter = Router();
-
-const users = [];
-let nextId = 1;
 
 usersRouter.get("/", (req, res) => {
   res.json(users);
@@ -24,7 +22,7 @@ usersRouter.post("/", (req, res) => {
     return res.status(400).json({ message: "Name and email required" });
   }
 
-  const newUser = { id: nextId++, name, email };
+  const newUser = { id: generateUserId(), name, email };
   users.push(newUser);
 
   res.json(newUser);

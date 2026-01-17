@@ -1,9 +1,7 @@
 import { Router } from "express";
+import { services, generateServiceId } from "../data/services.data.js";
 
 const servicesRouter = Router();
-
-const services = [];
-let nextId = 1;
 
 servicesRouter.get("/", (req, res) => {
   res.json(services);
@@ -26,7 +24,7 @@ servicesRouter.post("/", (req, res) => {
   }
 
   const newService = {
-    id: nextId++,
+    id: generateServiceId(),
     name,
     duration,
     price,
