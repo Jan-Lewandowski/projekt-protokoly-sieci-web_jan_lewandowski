@@ -8,7 +8,7 @@ usersRouter.get("/", (req, res) => {
 });
 
 usersRouter.get("/:id", (req, res) => {
-  const user = users.find((u) => u.id === parseInt(req.params.id));
+  const user = users.find((u) => u.id === Number(req.params.id));
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
@@ -29,7 +29,7 @@ usersRouter.post("/", (req, res) => {
 });
 
 usersRouter.put("/:id", (req, res) => {
-  const user = users.find((u) => u.id === parseInt(req.params.id));
+  const user = users.find((u) => u.id === Number(req.params.id));
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
@@ -42,7 +42,7 @@ usersRouter.put("/:id", (req, res) => {
 });
 
 usersRouter.delete("/:id", (req, res) => {
-  const index = users.findIndex((u) => u.id === parseInt(req.params.id));
+  const index = users.findIndex((u) => u.id === Number(req.params.id));
   if (index === -1) {
     return res.status(404).json({ message: "User not found" });
   }
