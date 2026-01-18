@@ -1,4 +1,4 @@
-export const categories = [];
+export const categories = [{ id: 1, name: "fryzjer", services: [] }];
 let nextCategoryId = 1;
 let nextServiceId = 1;
 

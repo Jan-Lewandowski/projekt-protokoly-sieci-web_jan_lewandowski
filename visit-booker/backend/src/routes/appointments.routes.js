@@ -1,20 +1,30 @@
 import { Router } from "express";
 import { categories } from "../data/categories.data.js";
+import { auth } from "../middleware/auth.middleware.js"
+import { adminOnly } from "../middleware/admin.middleware.js";
 
 const appointments = [];
 let nextAppointmentId = 1;
 
 const appointmentsRouter = Router();
 
-appointmentsRouter.get("/", (req, res) => {
+appointmentsRouter.get("/", auth, adminOnly, (req, res) => {
   res.json(appointments);
 });
 
-appointmentsRouter.post("/", (req, res) => {
-  const { userName, categoryId, serviceId, date, time } = req.body;
-  if (!userName || !categoryId || !serviceId || !date || !time) {
+appointmentsRouter.get("/my", auth, (req, res) => {
+  const myAppointments = appointments.filter(
+    (a) => a.userId === req.session.user.id,
+  );
+
+  res.json(myAppointments);
+});
+
+appointmentsRouter.post("/", auth, (req, res) => {
+  const { categoryId, serviceId, date, time } = req.body;
+  if (!categoryId || !serviceId || !date || !time) {
     return res.status(400).json({
-      message: "userName, categoryId, serviceId, date and time are required",
+      message: "categoryId, serviceId, date and time are required",
     });
   }
 
@@ -40,7 +50,7 @@ appointmentsRouter.post("/", (req, res) => {
 
   const newAppointment = {
     id: nextAppointmentId++,
-    userName,
+    userId: req.session.user.id,
     categoryId: category.id,
     serviceId: service.id,
     date,
@@ -51,13 +61,16 @@ appointmentsRouter.post("/", (req, res) => {
   res.status(201).json(newAppointment);
 });
 
-appointmentsRouter.put("/:id", (req, res) => {
+appointmentsRouter.put("/:id", auth, (req, res) => {
   const appointmentId = Number(req.params.id);
   const { categoryId, serviceId, date, time } = req.body;
-
   const appointment = appointments.find((a) => a.id === appointmentId);
+
   if (!appointment) {
     return res.status(404).json({ message: "appointment not found" });
+  }
+  if (appointment.userId !== req.session.user.id && req.session.user.role !== "admin") {
+    return res.status(403).json({ message: "forbidden" });
   }
   if (categoryId && serviceId) {
     const category = categories.find((c) => c.id === Number(categoryId));
@@ -82,15 +95,26 @@ appointmentsRouter.put("/:id", (req, res) => {
   res.json(appointment);
 });
 
-appointmentsRouter.delete("/:id", (req, res) => {
-  const appointmentId = Number(req.params.id);
-  const index = appointments.findIndex((a) => a.id === appointmentId);
 
-  if (index === -1) {
-    return res.status(404).json({ message: "appointment not found" });
+appointmentsRouter.delete("/:id", auth, (req, res) => {
+  const appointmentIndex = appointments.findIndex(
+    (a) => a.id === Number(req.params.id),
+  );
+
+  if (appointmentIndex === -1) {
+    return res.status(404).json({ message: "not found" });
   }
 
-  appointments.splice(index, 1);
+  const appointment = appointments[appointmentIndex];
+
+  if (
+    appointment.userId !== req.session.user.id &&
+    req.session.user.role !== "admin"
+  ) {
+    return res.status(403).json({ message: "forbidden" });
+  }
+
+  appointments.splice(appointmentIndex, 1);
   res.status(204).send();
 });
 

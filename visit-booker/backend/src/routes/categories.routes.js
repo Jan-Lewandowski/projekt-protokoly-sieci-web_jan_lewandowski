@@ -4,10 +4,12 @@ import {
   generateCategoryId,
   generateServiceId,
 } from "../data/categories.data.js";
+import { auth } from "../middleware/auth.middleware.js";
+import { adminOnly } from "../middleware/admin.middleware.js";
 
 const categoriesRouter = Router();
 
-categoriesRouter.get("/", (req, res) => {
+categoriesRouter.get("/", auth, (req, res) => {
   const simpleCategories = categories.map((c) => ({
     id: c.id,
     name: c.name,
@@ -16,7 +18,7 @@ categoriesRouter.get("/", (req, res) => {
   res.json(simpleCategories);
 });
 
-categoriesRouter.get("/:categoryId/services", (req, res) => {
+categoriesRouter.get("/:categoryId/services", auth, (req, res) => {
   const category = categories.find(
     (c) => c.id === Number(req.params.categoryId),
   );
@@ -26,7 +28,7 @@ categoriesRouter.get("/:categoryId/services", (req, res) => {
   res.json(category.services || []);
 });
 
-categoriesRouter.get("/:categoryId/services/search", (req, res) => {
+categoriesRouter.get("/:categoryId/services/search", auth, (req, res) => {
   const { q } = req.query;
   const category = categories.find(
     (c) => c.id === Number(req.params.categoryId),
@@ -45,7 +47,7 @@ categoriesRouter.get("/:categoryId/services/search", (req, res) => {
   res.json(result);
 });
 
-categoriesRouter.post("/", (req, res) => {
+categoriesRouter.post("/", auth, adminOnly, (req, res) => {
   const { name } = req.body;
   if (!name)
     return res.status(400).json({ message: "Category name is required" });
@@ -55,7 +57,7 @@ categoriesRouter.post("/", (req, res) => {
   res.status(201).json(newCategory);
 });
 
-categoriesRouter.post("/:categoryId/services", (req, res) => {
+categoriesRouter.post("/:categoryId/services", auth, adminOnly, (req, res) => {
   const { categoryId } = req.params;
   const { name, duration, price } = req.body;
 
@@ -75,7 +77,7 @@ categoriesRouter.post("/:categoryId/services", (req, res) => {
   res.status(201).json(newService);
 });
 
-categoriesRouter.put("/:id", (req, res) => {
+categoriesRouter.put("/:id", auth, adminOnly, (req, res) => {
   const categoryId = Number(req.params.id);
   const { name } = req.body;
 
@@ -91,7 +93,7 @@ categoriesRouter.put("/:id", (req, res) => {
   res.json(category);
 });
 
-categoriesRouter.delete("/:id", (req, res) => {
+categoriesRouter.delete("/:id", auth, adminOnly, (req, res) => {
   const categoryId = Number(req.params.id);
   const index = categories.findIndex((c) => c.id === categoryId);
 
