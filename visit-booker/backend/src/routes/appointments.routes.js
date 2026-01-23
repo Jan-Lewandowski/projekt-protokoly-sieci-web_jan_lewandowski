@@ -8,6 +8,10 @@ let nextAppointmentId = 1;
 
 const appointmentsRouter = Router();
 
+function appointmentDateTime(date, time) {
+  return new Date(`${date}T${time}`);
+}
+
 appointmentsRouter.get("/", auth, adminOnly, (req, res) => {
   res.json(appointments);
 });
@@ -25,6 +29,35 @@ appointmentsRouter.post("/", auth, (req, res) => {
   if (!categoryId || !serviceId || !date || !time) {
     return res.status(400).json({
       message: "categoryId, serviceId, date and time are required",
+    });
+  }
+
+  const [hour, minute] = time.split(":").map(Number);
+  if (minute !== 0) {
+    return res.status(400).json({
+      message: "appointments must start at full hour",
+    });
+  }
+  const OPEN_HOUR = 8;
+  const CLOSE_HOUR = 16;
+  if (hour < OPEN_HOUR || hour >= CLOSE_HOUR) {
+    return res.status(400).json({
+      message: "appointments can be booked only between 08:00 and 16:00",
+    });
+  }
+
+  const appointmentTime = new Date(`${date}T${time}`);
+  if (appointmentTime < now) {
+    return res.status(400).json({
+      message: "cannot create appointment in the past",
+    });
+  }
+
+  const diffMs = appointmentTime - now;
+  const diffHours = diffMs / (1000 * 60 * 60);
+  if (diffHours < 2) {
+    return res.status(400).json({
+      message: "appointments must be booked at least 2 hours in advance",
     });
   }
 
@@ -55,6 +88,7 @@ appointmentsRouter.post("/", auth, (req, res) => {
     serviceId: service.id,
     date,
     time,
+    status: "scheduled",
   };
 
   appointments.push(newAppointment);
@@ -65,6 +99,13 @@ appointmentsRouter.put("/:id", auth, (req, res) => {
   const appointmentId = Number(req.params.id);
   const { categoryId, serviceId, date, time } = req.body;
   const appointment = appointments.find((a) => a.id === appointmentId);
+
+  const appointmentTime = appointmentDateTime(appointment.date, appointment.time);
+  if (appointmentTime < new Date()) {
+    return res.status(403).json({
+      message: "past appointments cannot be modified",
+    })
+  }
 
   if (!appointment) {
     return res.status(404).json({ message: "appointment not found" });
@@ -100,6 +141,22 @@ appointmentsRouter.delete("/:id", auth, (req, res) => {
   const appointmentIndex = appointments.findIndex(
     (a) => a.id === Number(req.params.id),
   );
+
+  const appointmentTime = appointmentDateTime(appointment.date, appointment.time);
+  if (appointmentTime < new Date()) {
+    return res.status(403).json({
+      message: "past appointments cannot be modified",
+    })
+  }
+
+  const now = new Date();
+  const diffMs = appointmentTime - now;
+  const diffHours = diffMs / (1000 * 60 * 60);
+  if (diffHours < 24) {
+    return res.status(403).json({
+      message: "appointments cannot be modified less than 24 hours before",
+    });
+  }
 
   if (appointmentIndex === -1) {
     return res.status(404).json({ message: "not found" });
