@@ -2,6 +2,7 @@ import { Router } from "express";
 import { categories } from "../data/categories.data.js";
 import { auth } from "../middleware/auth.middleware.js"
 import { adminOnly } from "../middleware/admin.middleware.js";
+import { broadcast } from "../websocket.js";
 
 const appointments = [];
 let nextAppointmentId = 1;
@@ -46,6 +47,7 @@ appointmentsRouter.post("/", auth, (req, res) => {
     });
   }
 
+  const now = new Date();
   const appointmentTime = new Date(`${date}T${time}`);
   if (appointmentTime < now) {
     return res.status(400).json({
@@ -92,6 +94,7 @@ appointmentsRouter.post("/", auth, (req, res) => {
   };
 
   appointments.push(newAppointment);
+  broadcast({ type: "appointments:created", appointment: newAppointment });
   res.status(201).json(newAppointment);
 });
 
@@ -100,15 +103,15 @@ appointmentsRouter.put("/:id", auth, (req, res) => {
   const { categoryId, serviceId, date, time } = req.body;
   const appointment = appointments.find((a) => a.id === appointmentId);
 
+  if (!appointment) {
+    return res.status(404).json({ message: "appointment not found" });
+  }
+
   const appointmentTime = appointmentDateTime(appointment.date, appointment.time);
   if (appointmentTime < new Date()) {
     return res.status(403).json({
       message: "past appointments cannot be modified",
-    })
-  }
-
-  if (!appointment) {
-    return res.status(404).json({ message: "appointment not found" });
+    });
   }
   if (appointment.userId !== req.session.user.id && req.session.user.role !== "admin") {
     return res.status(403).json({ message: "forbidden" });
@@ -133,6 +136,7 @@ appointmentsRouter.put("/:id", auth, (req, res) => {
   if (date) appointment.date = date;
   if (time) appointment.time = time;
 
+  broadcast({ type: "appointments:updated", appointment });
   res.json(appointment);
 });
 
@@ -142,11 +146,17 @@ appointmentsRouter.delete("/:id", auth, (req, res) => {
     (a) => a.id === Number(req.params.id),
   );
 
+  if (appointmentIndex === -1) {
+    return res.status(404).json({ message: "not found" });
+  }
+
+  const appointment = appointments[appointmentIndex];
+
   const appointmentTime = appointmentDateTime(appointment.date, appointment.time);
   if (appointmentTime < new Date()) {
     return res.status(403).json({
       message: "past appointments cannot be modified",
-    })
+    });
   }
 
   const now = new Date();
@@ -158,12 +168,6 @@ appointmentsRouter.delete("/:id", auth, (req, res) => {
     });
   }
 
-  if (appointmentIndex === -1) {
-    return res.status(404).json({ message: "not found" });
-  }
-
-  const appointment = appointments[appointmentIndex];
-
   if (
     appointment.userId !== req.session.user.id &&
     req.session.user.role !== "admin"
@@ -172,6 +176,7 @@ appointmentsRouter.delete("/:id", auth, (req, res) => {
   }
 
   appointments.splice(appointmentIndex, 1);
+  broadcast({ type: "appointments:deleted", appointmentId: appointment.id });
   res.status(204).send();
 });
 
