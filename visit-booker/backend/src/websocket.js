@@ -114,10 +114,6 @@ export function sendUserNotification(userId, notification) {
   });
 }
 
-export function resetCloseNotification(appointmentId) {
-  notifiedCloseAppointments.delete(appointmentId);
-}
-
 function checkCloseAppointments() {
   const now = Date.now();
 

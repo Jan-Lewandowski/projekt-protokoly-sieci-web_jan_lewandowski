@@ -32,6 +32,7 @@ authRouter.post("/register", async (req, res) => {
   req.session.user = {
     id: newUser.id,
     role: newUser.role,
+    email: newUser.email,
   };
 
   res.status(201).json({ message: "registered and logged in" });
@@ -53,6 +54,7 @@ authRouter.post("/login", async (req, res) => {
   req.session.user = {
     id: user.id,
     role: user.role,
+    email: user.email,
   };
 
   res.json({ message: "logged in" });
@@ -66,6 +68,7 @@ authRouter.get("/me", (req, res) => {
   res.json({
     id: req.session.user.id,
     role: req.session.user.role,
+    email: req.session.user.email,
   });
 });
 

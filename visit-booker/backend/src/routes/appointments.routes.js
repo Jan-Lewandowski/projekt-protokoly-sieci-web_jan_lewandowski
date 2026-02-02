@@ -3,8 +3,8 @@ import { appointments, generateAppointmentId } from "../data/appointments.data.j
 import { categories } from "../data/categories.data.js";
 import { adminOnly } from "../middleware/admin.middleware.js";
 import { auth } from "../middleware/auth.middleware.js";
-import { sendAppointmentUpdate, sendUserNotification, resetCloseNotification } from "../websocket.js";
-
+import { sendAppointmentUpdate, sendUserNotification } from "../websocket.js";
+import { sendNotification } from "../mqtt/notificationPublisher.js"
 
 const appointmentsRouter = Router();
 const OPEN_HOUR = 8;
@@ -164,6 +164,14 @@ appointmentsRouter.post("/", auth, (req, res) => {
   };
 
   appointments.push(newAppointment);
+  sendNotification({
+    userId: req.session.user.id,
+    email: req.session.user.email,
+    type: "EMAIL",
+    topic: "notifications/send",
+    subject: "Zarezerwowano wizytę",
+    message: `Twoja wizyta na usługę "${service.name}" w dniu ${date} o godzinie ${normalizedTime} została pomyślnie zarezerwowana.`,
+  });
   sendAppointmentUpdate("created", { appointment: newAppointment });
   res.status(201).json(newAppointment);
 });
