@@ -7,16 +7,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { API_URL } from "../lib/api";
 import { useAvailableSlots } from "../hooks/useAvailableSlots";
 import { Appointment, Category, Service } from "../types/entities";
 
 type UserDashboardContextValue = {
   categories: Category[];
-  categoriesLoading: boolean;
   categoriesError: string | null;
   services: Service[];
-  servicesLoading: boolean;
   servicesError: string | null;
   serviceQuery: string;
   categoryId: number | null;
@@ -25,7 +22,6 @@ type UserDashboardContextValue = {
   date: string;
   selectedTime: string;
   bookingError: string | null;
-  bookingLoading: boolean;
   appointments: Appointment[];
   appointmentsError: string | null;
   editingId: number | null;
@@ -33,10 +29,8 @@ type UserDashboardContextValue = {
   editTime: string;
   notifications: string[];
   editSlots: string[];
-  editSlotsLoading: boolean;
   editSlotsError: string | null;
   slots: string[];
-  slotsLoading: boolean;
   slotsError: string | null;
   setCategoryId: (value: number | null) => void;
   setServiceId: (value: number) => void;
@@ -57,6 +51,8 @@ const UserDashboardContext = createContext<UserDashboardContextValue | undefined
   undefined,
 );
 
+const API_URL = "http://localhost:4000";
+
 export function UserDashboardProvider({
   enabled,
   lockedCategoryId = null,
@@ -68,10 +64,8 @@ export function UserDashboardProvider({
 }) {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [services, setServices] = useState<Service[]>([]);
-  const [servicesLoading, setServicesLoading] = useState(false);
   const [servicesError, setServicesError] = useState<string | null>(null);
   const [serviceQuery, setServiceQuery] = useState("");
 
@@ -80,7 +74,6 @@ export function UserDashboardProvider({
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [bookingError, setBookingError] = useState<string | null>(null);
-  const [bookingLoading, setBookingLoading] = useState(false);
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [appointmentsError, setAppointmentsError] = useState<string | null>(null);
@@ -90,7 +83,7 @@ export function UserDashboardProvider({
 
   const [notifications, setNotifications] = useState<string[]>([]);
 
-  const { slots, loading, error, refresh } = useAvailableSlots(
+  const { slots, error, refresh } = useAvailableSlots(
     serviceId,
     date,
     enabled,
@@ -106,18 +99,16 @@ export function UserDashboardProvider({
 
   const {
     slots: editSlots,
-    loading: editSlotsLoading,
     error: editSlotsError,
   } = useAvailableSlots(editServiceId, editDateValue, Boolean(editServiceId), editCategoryId);
 
   useEffect(() => {
     if (!enabled) return;
-    if (lockedCategoryId === null || !Number.isFinite(lockedCategoryId)) return;
-    setCategoryId(lockedCategoryId);
-  }, [enabled, lockedCategoryId]);
 
-  useEffect(() => {
-    if (!enabled) return;
+    if (lockedCategoryId !== null && Number.isFinite(lockedCategoryId)) {
+      setCategoryId(lockedCategoryId);
+    }
+
     fetch(`${API_URL}/api/auth/me`, { credentials: "include" })
       .then(async (res) => {
         if (!res.ok) throw new Error(`Request failed: ${res.status}`);
@@ -125,11 +116,7 @@ export function UserDashboardProvider({
       })
       .then((data: { id: number }) => setCurrentUserId(data.id))
       .catch(() => setCurrentUserId(null));
-  }, [enabled]);
 
-  useEffect(() => {
-    if (!enabled) return;
-    setCategoriesLoading(true);
     setCategoriesError(null);
 
     fetch(`${API_URL}/api/categories`, { credentials: "include" })
@@ -150,8 +137,9 @@ export function UserDashboardProvider({
         const message = err instanceof Error ? err.message : "Unknown error";
         setCategoriesError(message);
       })
-      .finally(() => setCategoriesLoading(false));
-  }, [enabled]);
+
+    loadMyAppointments();
+  }, [enabled, lockedCategoryId]);
 
   useEffect(() => {
     if (!categoryId) return;
@@ -180,11 +168,9 @@ export function UserDashboardProvider({
         setServiceId(fallbackServices[0].id);
       }
       setServicesError(null);
-      setServicesLoading(false);
       return;
     }
 
-    setServicesLoading(true);
     setServicesError(null);
     fetch(
       `${API_URL}/api/categories/${categoryId}/services/search?q=${encodeURIComponent(query)}`,
@@ -211,7 +197,6 @@ export function UserDashboardProvider({
         setServicesError(message);
         setServices([]);
       })
-      .finally(() => setServicesLoading(false));
   }, [enabled, categoryId, categories, serviceQuery, serviceId]);
 
   const loadMyAppointments = () => {
@@ -229,10 +214,6 @@ export function UserDashboardProvider({
         setAppointmentsError(message);
       });
   };
-
-  useEffect(() => {
-    loadMyAppointments();
-  }, [enabled]);
 
   useEffect(() => {
     if (!enabled || !currentUserId) return;
@@ -264,7 +245,6 @@ export function UserDashboardProvider({
 
   const handleBook = async () => {
     if (!categoryId || !serviceId || !date || !selectedTime) return;
-    setBookingLoading(true);
     setBookingError(null);
     try {
       const res = await fetch(`${API_URL}/api/appointments`, {
@@ -291,7 +271,6 @@ export function UserDashboardProvider({
       const message = err instanceof Error ? err.message : "Unknown error";
       setBookingError(message);
     } finally {
-      setBookingLoading(false);
     }
   };
 
@@ -352,10 +331,8 @@ export function UserDashboardProvider({
 
   const value: UserDashboardContextValue = {
     categories,
-    categoriesLoading,
     categoriesError,
     services,
-    servicesLoading,
     servicesError,
     serviceQuery,
     categoryId,
@@ -364,7 +341,6 @@ export function UserDashboardProvider({
     date,
     selectedTime,
     bookingError,
-    bookingLoading,
     appointments,
     appointmentsError,
     editingId,
@@ -372,10 +348,8 @@ export function UserDashboardProvider({
     editTime,
     notifications,
     editSlots,
-    editSlotsLoading,
     editSlotsError,
     slots,
-    slotsLoading: loading,
     slotsError: error,
     setCategoryId,
     setServiceId,

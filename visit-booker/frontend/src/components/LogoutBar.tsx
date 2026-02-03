@@ -8,10 +8,13 @@ type LogoutBarProps = {
 
 export default function LogoutBar({ onLogout }: LogoutBarProps) {
   return (
-    <div className="logout-bar">
-      <button type="button" onClick={onLogout} className="logout-button">
-        Wyloguj
-      </button>
-    </div>
+    <header className="logout-bar">
+      <div className="logout-bar-inner">
+        <span className="logout-brand">VisitBooker</span>
+        <button type="button" onClick={onLogout} className="logout-button">
+          Wyloguj
+        </button>
+      </div>
+    </header>
   );
 }

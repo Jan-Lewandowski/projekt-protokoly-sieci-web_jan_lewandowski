@@ -117,13 +117,13 @@
 }
 
 .admin-slot.free {
-  background: #ecfeff;
-  border-color: rgba(14, 165, 164, 0.25);
+  background: #d9f9ff;
+  border-color: rgba(165, 155, 14, 0.25);
 }
 
 .admin-slot.busy {
-  background: #fff1f2;
-  border-color: rgba(239, 68, 68, 0.25);
+  background: #ffe0e2;
+  border-color: rgba(255, 122, 122, 0.25);
 }
 
 .admin-slot-time {

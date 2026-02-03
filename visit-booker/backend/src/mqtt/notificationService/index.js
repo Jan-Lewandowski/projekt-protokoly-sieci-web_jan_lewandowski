@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import { buildEmailTemplate } from "./emailTemplate.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,11 +33,18 @@ async function sendEmail(data) {
 
   const from = process.env.EMAIL_FROM ?? process.env.GMAIL_USER;
 
+  const html = buildEmailTemplate({
+    subject,
+    message,
+    user,
+  });
+
   const info = await transporter.sendMail({
     from,
     to,
     subject,
     text: message,
+    html,
   });
 
   console.log(
@@ -46,17 +54,27 @@ async function sendEmail(data) {
   return { ok: true, channel: "EMAIL", user, subject, to, id: info.messageId };
 }
 
-
 client.on("connect", () => {
   console.log("Notification service connected to MQTT broker");
-  client.subscribe("notifications/send");
+  client.subscribe(["notifications/send", "appointments/edit-request"]);
 });
 
 client.on("message", async (topic, message) => {
   const data = JSON.parse(message.toString());
+  const editRequestTypes = [
+    "EDIT_REQUEST_APPROVED",
+    "EDIT_REQUEST_REJECTED",
+  ];
 
   if (data.type === "EMAIL") {
     await sendEmail(data);
+  }
+
+  if (editRequestTypes.includes(data.type)) {
+    await sendEmail({
+      ...data,
+      type: "EMAIL",
+    });
   }
 
 });

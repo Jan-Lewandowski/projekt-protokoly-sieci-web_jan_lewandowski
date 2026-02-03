@@ -11,7 +11,6 @@ export default function UserAppointments() {
     editDate,
     editTime,
     editSlots,
-    editSlotsLoading,
     editSlotsError,
     startEdit,
     cancelEdit,
@@ -34,111 +33,123 @@ export default function UserAppointments() {
   const editSlotOptions = editTime && !editSlots.includes(editTime)
     ? [editTime, ...editSlots]
     : editSlots;
+  const now = new Date();
+  const upcomingAppointments = appointments.filter((appointment) => {
+    const appointmentTime = new Date(`${appointment.date}T${appointment.time}`);
+    return appointmentTime >= now;
+  });
 
   return (
     <section className="user-section">
       <h3>Moje wizyty</h3>
       {appointmentsError && <p className="user-error">{appointmentsError}</p>}
-      {appointments.length === 0 && <p>Brak wizyt.</p>}
-      {appointments.length > 0 && (
+      {upcomingAppointments.length === 0 && <p>Brak wizyt.</p>}
+      {upcomingAppointments.length > 0 && (
         <table className="user-table">
           <thead>
             <tr>
-              <th>ID</th>
               <th>Kategoria</th>
               <th>Usługa</th>
               <th>Data</th>
               <th>Godzina</th>
+              <th>Status zmiany</th>
               <th>Akcje</th>
             </tr>
           </thead>
           <tbody>
-            {appointments.map((appointment) => (
-              <tr key={appointment.id}>
-                <td>{appointment.id}</td>
-                <td>{getCategoryName(appointment.categoryId)}</td>
-                <td>
-                  {getServiceName(appointment.categoryId, appointment.serviceId)}
-                </td>
-                <td>
-                  {editingId === appointment.id ? (
-                    <input
-                      type="date"
-                      value={editDate}
-                      onChange={(e) => setEditDate(e.target.value)}
-                      className="user-input"
-                    />
-                  ) : (
-                    appointment.date
-                  )}
-                </td>
-                <td>
-                  {editingId === appointment.id ? (
-                    <select
-                      value={editTime}
-                      onChange={(e) => setEditTime(e.target.value)}
-                      className="user-input"
-                      disabled={editSlotsLoading || editSlotOptions.length === 0}
-                    >
-                      {editSlotsLoading && (
-                        <option value="" disabled>
-                          Ładowanie slotów...
-                        </option>
-                      )}
-                      {!editSlotsLoading && editSlotOptions.length === 0 && (
-                        <option value="" disabled>
-                          Brak dostępnych slotów
-                        </option>
-                      )}
-                      {editSlotOptions.map((slot) => (
-                        <option key={slot} value={slot}>
-                          {slot}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    appointment.time
-                  )}
-                </td>
-                <td>
-                  {editingId === appointment.id ? (
-                    <div className="user-actions">
-                      <button
-                        type="button"
-                        className="user-button"
-                        onClick={() => saveEdit(appointment.id)}
+            {upcomingAppointments.map((appointment) => {
+              const editStatusLabel = appointment.editRequestStatus === "pending"
+                ? "Oczekuje"
+                : appointment.editRequestStatus === "approved"
+                  ? "Zaakceptowano"
+                  : appointment.editRequestStatus === "rejected"
+                    ? "Odrzucono"
+                    : "";
+              const isEditPending = appointment.editRequestStatus === "pending";
+              return (
+                <tr key={appointment.id}>
+
+                  <td>{getCategoryName(appointment.categoryId)}</td>
+                  <td>
+                    {getServiceName(appointment.categoryId, appointment.serviceId)}
+                  </td>
+                  <td>
+                    {editingId === appointment.id ? (
+                      <input
+                        type="date"
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        className="user-input"
+                      />
+                    ) : (
+                      appointment.date
+                    )}
+                  </td>
+                  <td>
+                    {editingId === appointment.id ? (
+                      <select
+                        value={editTime}
+                        onChange={(e) => setEditTime(e.target.value)}
+                        className="user-input"
+                        disabled={editSlotOptions.length === 0}
                       >
-                        Zapisz
-                      </button>
-                      <button
-                        type="button"
-                        className="user-button secondary"
-                        onClick={cancelEdit}
-                      >
-                        Anuluj
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="user-actions">
-                      <button
-                        type="button"
-                        className="user-button"
-                        onClick={() => startEdit(appointment)}
-                      >
-                        Edytuj
-                      </button>
-                      <button
-                        type="button"
-                        className="user-button danger"
-                        onClick={() => deleteAppointment(appointment.id)}
-                      >
-                        Usuń
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
+                        {editSlotOptions.length === 0 && (
+                          <option value="" disabled>
+                            Brak dostępnych slotów
+                          </option>
+                        )}
+                        {editSlotOptions.map((slot) => (
+                          <option key={slot} value={slot}>
+                            {slot}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      appointment.time
+                    )}
+                  </td>
+                  <td>{editStatusLabel}</td>
+                  <td>
+                    {editingId === appointment.id ? (
+                      <div className="user-actions">
+                        <button
+                          type="button"
+                          className="user-button"
+                          onClick={() => saveEdit(appointment.id)}
+                        >
+                          Wyślij prośbę
+                        </button>
+                        <button
+                          type="button"
+                          className="user-button secondary"
+                          onClick={cancelEdit}
+                        >
+                          Anuluj
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="user-actions">
+                        <button
+                          type="button"
+                          className="user-button"
+                          onClick={() => startEdit(appointment)}
+                          disabled={isEditPending}
+                        >
+                          Edytuj
+                        </button>
+                        <button
+                          type="button"
+                          className="user-button danger"
+                          onClick={() => deleteAppointment(appointment.id)}
+                        >
+                          Usuń
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

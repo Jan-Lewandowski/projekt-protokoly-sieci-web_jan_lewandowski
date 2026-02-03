@@ -8,7 +8,6 @@ const API_URL = "http://localhost:4000";
 
 type SlotsState = {
   slots: string[];
-  loading: boolean;
   error: string | null;
 };
 
@@ -20,13 +19,12 @@ export function useAvailableSlots(
 ) {
   const [state, setState] = useState<SlotsState>({
     slots: [],
-    loading: false,
     error: null,
   });
 
   const fetchSlots = async () => {
     if (!enabled || !serviceId || !date) return;
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+    setState((prev) => ({ ...prev, error: null }));
     try {
       const params = new URLSearchParams({
         serviceId: String(serviceId),
@@ -43,10 +41,10 @@ export function useAvailableSlots(
         throw new Error(`Request failed: ${res.status}`);
       }
       const data = await res.json();
-      setState({ slots: data.availableSlots ?? [], loading: false, error: null });
+      setState({ slots: data.availableSlots ?? [], error: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
-      setState({ slots: [], loading: false, error: message });
+      setState({ slots: [], error: message });
     }
   };
 
@@ -79,7 +77,6 @@ export function useAvailableSlots(
 
   return {
     slots: state.slots,
-    loading: state.loading,
     error: state.error,
     refresh: fetchSlots,
   };

@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { API_URL } from "../lib/api";
+
 import { Appointment, Category, User } from "../types/entities";
 
 type EventMessage = {
@@ -65,9 +65,12 @@ type AdminDashboardContextValue = {
   startEditService: (service: Category["services"][number]) => void;
   cancelEditService: () => void;
   saveService: (serviceId: number) => void;
+  deleteService: (serviceId: number) => void;
   startEditAppointment: (appointment: Appointment) => void;
   saveAppointment: (appointmentId: number) => void;
   deleteAppointment: (appointmentId: number) => void;
+  approveEditRequest: (appointmentId: number) => void;
+  rejectEditRequest: (appointmentId: number) => void;
   deleteUser: (userId: number) => void;
   toggleUserRole: (userId: number) => void;
 };
@@ -75,6 +78,8 @@ type AdminDashboardContextValue = {
 const AdminDashboardContext = createContext<AdminDashboardContextValue | undefined>(
   undefined,
 );
+
+const API_URL = "http://localhost:4000";
 
 export function AdminDashboardProvider({
   enabled,
@@ -127,11 +132,12 @@ export function AdminDashboardProvider({
   };
 
   useEffect(() => {
-    loadUsers();
-  }, [enabled]);
-
-  useEffect(() => {
     if (!enabled) return;
+
+    loadUsers();
+    loadCategories();
+    loadAppointments();
+
     fetch(`${API_URL}/api/auth/me`, { credentials: "include" })
       .then(async (res) => {
         if (!res.ok) throw new Error(`Request failed: ${res.status}`);
@@ -139,6 +145,31 @@ export function AdminDashboardProvider({
       })
       .then((data: { id: number }) => setCurrentUserId(data.id))
       .catch(() => setCurrentUserId(null));
+
+    const wsUrl = `ws://${window.location.hostname}:4000`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onmessage = (message) => {
+      try {
+        const event = JSON.parse(message.data) as EventMessage;
+        if (event.type === "appointments:update") {
+          const label = event.event ?? "updated";
+          setNotifications((prev) => [
+            `appointments:${label} o ${new Date().toLocaleTimeString()}`,
+            ...prev,
+          ]);
+          loadAppointments();
+        }
+      } catch {
+      }
+    };
+
+    const intervalId = setInterval(loadAppointments, 60 * 1000);
+
+    return () => {
+      clearInterval(intervalId);
+      ws.close();
+    };
   }, [enabled]);
 
   const loadCategories = () => {
@@ -160,10 +191,6 @@ export function AdminDashboardProvider({
       });
   };
 
-  useEffect(() => {
-    loadCategories();
-  }, [enabled]);
-
   const loadAppointments = () => {
     if (!enabled) return;
     fetch(`${API_URL}/api/appointments`, { credentials: "include" })
@@ -178,32 +205,6 @@ export function AdminDashboardProvider({
       });
   };
 
-  useEffect(() => {
-    loadAppointments();
-  }, [enabled]);
-
-  useEffect(() => {
-    if (!enabled) return;
-    const wsUrl = `ws://${window.location.hostname}:4000`;
-    const ws = new WebSocket(wsUrl);
-
-    ws.onmessage = (message) => {
-      try {
-        const event = JSON.parse(message.data) as EventMessage;
-        if (event.type === "appointments:update") {
-          const label = event.event ?? "updated";
-          setNotifications((prev) => [
-            `appointments:${label} o ${new Date().toLocaleTimeString()}`,
-            ...prev,
-          ]);
-          loadAppointments();
-        }
-      } catch {
-      }
-    };
-
-    return () => ws.close();
-  }, [enabled]);
 
   const createCategory = async () => {
     if (!newCategoryName.trim()) return;
@@ -310,6 +311,20 @@ export function AdminDashboardProvider({
     }
   };
 
+  const deleteService = async (serviceId: number) => {
+    if (!serviceCategoryId) return;
+    const res = await fetch(
+      `${API_URL}/api/categories/${serviceCategoryId}/services/${serviceId}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      },
+    );
+    if (res.ok) {
+      loadCategories();
+    }
+  };
+
   const startEditAppointment = (appointment: Appointment) => {
     setEditingAppointmentId(appointment.id);
     setEditCategoryId(appointment.categoryId);
@@ -341,6 +356,32 @@ export function AdminDashboardProvider({
       method: "DELETE",
       credentials: "include",
     });
+    if (res.ok) {
+      loadAppointments();
+    }
+  };
+
+  const approveEditRequest = async (appointmentId: number) => {
+    const res = await fetch(
+      `${API_URL}/api/appointments/${appointmentId}/approve-edit`,
+      {
+        method: "PUT",
+        credentials: "include",
+      },
+    );
+    if (res.ok) {
+      loadAppointments();
+    }
+  };
+
+  const rejectEditRequest = async (appointmentId: number) => {
+    const res = await fetch(
+      `${API_URL}/api/appointments/${appointmentId}/reject-edit`,
+      {
+        method: "PUT",
+        credentials: "include",
+      },
+    );
     if (res.ok) {
       loadAppointments();
     }
@@ -439,9 +480,12 @@ export function AdminDashboardProvider({
     startEditService,
     cancelEditService,
     saveService,
+    deleteService,
     startEditAppointment,
     saveAppointment,
     deleteAppointment,
+    approveEditRequest,
+    rejectEditRequest,
     deleteUser,
     toggleUserRole,
   };

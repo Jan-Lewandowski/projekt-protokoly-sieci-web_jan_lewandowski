@@ -1,15 +1,14 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useUserDashboard } from "../../context/UserDashboardContext";
 
 export default function UserBooking() {
   const {
     categories,
     services,
-    servicesLoading,
     servicesError,
     serviceQuery,
-    categoriesLoading,
     categoriesError,
     categoryId,
     categoryLocked,
@@ -17,10 +16,8 @@ export default function UserBooking() {
     date,
     selectedTime,
     slots,
-    slotsLoading,
     slotsError,
     bookingError,
-    bookingLoading,
     setCategoryId,
     setServiceId,
     setServiceQuery,
@@ -30,6 +27,31 @@ export default function UserBooking() {
     refreshSlots,
   } = useUserDashboard();
   const now = new Date();
+  const datePickerRef = useRef<HTMLInputElement | null>(null);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const formatLocalDate = (value: Date) => {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, "0");
+    const day = String(value.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+  const todayIso = formatLocalDate(today);
+  const mondayOffset = (today.getDay() + 6) % 7;
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - mondayOffset);
+  const weekOptions = Array.from({ length: 7 }, (_, index) => {
+    const optionDate = new Date(weekStart);
+    optionDate.setDate(weekStart.getDate() + index);
+    return optionDate;
+  })
+    .filter((optionDate) => optionDate >= today)
+    .map((optionDate) => formatLocalDate(optionDate));
+
+  useEffect(() => {
+    if (!date) {
+      setDate(todayIso);
+    }
+  }, [date, setDate, todayIso]);
   const selectedService = services.find((service) => service.id === serviceId);
   const durationMinutes = Number(
     selectedService?.durationMinutes ?? selectedService?.duration ?? 0,
@@ -61,7 +83,7 @@ export default function UserBooking() {
               className="user-input"
               value={categoryId ?? ""}
               onChange={(e) => setCategoryId(Number(e.target.value))}
-              disabled={categoriesLoading || categories.length === 0}
+              disabled={categories.length === 0}
             >
               {categories.length === 0 && (
                 <option value="" disabled>
@@ -109,12 +131,44 @@ export default function UserBooking() {
 
         <label className="user-label">
           Data
-          <input
-            type="date"
-            className="user-input"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
+          <div className="user-date-row">
+            <div className="user-date-options" role="listbox" aria-label="Wybór daty">
+              {weekOptions.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  className={`user-date-option ${(date || todayIso) === option ? "selected" : ""
+                    }`}
+                  onClick={() => setDate(option)}
+                  role="option"
+                  aria-selected={(date || todayIso) === option}
+                >
+                  {option === todayIso ? `Dzisiaj` : option}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="user-date-button"
+              aria-label="Wybierz inną datę"
+              onClick={() => {
+                if (datePickerRef.current?.showPicker) {
+                  datePickerRef.current.showPicker();
+                } else {
+                  datePickerRef.current?.focus();
+                }
+              }}
+            >
+              📅
+            </button>
+            <input
+              ref={datePickerRef}
+              type="date"
+              className="user-date-input"
+              value={date || todayIso}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
         </label>
 
         <div className="user-calendar">
@@ -147,7 +201,7 @@ export default function UserBooking() {
         type="button"
         className="user-button"
         onClick={handleBook}
-        disabled={bookingLoading || !selectedTime}
+        disabled={!selectedTime}
       >
         Zarezerwuj
       </button>
@@ -156,11 +210,8 @@ export default function UserBooking() {
         Odśwież sloty
       </button>
 
-      {categoriesLoading && <p>Ładowanie kategorii...</p>}
       {categoriesError && <p className="user-error">{categoriesError}</p>}
-      {servicesLoading && <p>Ładowanie usług...</p>}
       {servicesError && <p className="user-error">{servicesError}</p>}
-      {slotsLoading && <p>Ładowanie slotów...</p>}
       {slotsError && <p className="user-error">{slotsError}</p>}
       {bookingError && <p className="user-error">{bookingError}</p>}
     </section>

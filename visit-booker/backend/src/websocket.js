@@ -1,5 +1,5 @@
 import { WebSocketServer } from "ws";
-import { appointments } from "./data/appointments.data.js";
+import { all } from "./db/index.js";
 
 let wss;
 let closeNotificationInterval;
@@ -46,7 +46,7 @@ export function initWebSocket(server) {
     if (userId !== null) {
       ws.userId = userId;
       registerUserConnection(userId, ws);
-      checkCloseAppointmentsForUser(userId);
+      void checkCloseAppointmentsForUser(userId);
     }
 
     ws.on("close", () => {
@@ -59,10 +59,10 @@ export function initWebSocket(server) {
 
   if (!closeNotificationInterval) {
     closeNotificationInterval = setInterval(
-      checkCloseAppointments,
+      () => void checkCloseAppointments(),
       CLOSE_NOTIFICATION_CHECK_INTERVAL_MS,
     );
-    checkCloseAppointments();
+    void checkCloseAppointments();
   }
 
   return wss;
@@ -114,8 +114,20 @@ export function sendUserNotification(userId, notification) {
   });
 }
 
-function checkCloseAppointments() {
+export function resetCloseNotification(appointmentId) {
+  notifiedCloseAppointments.delete(appointmentId);
+}
+
+async function fetchAppointments(whereClause = "", params = []) {
+  const sql =
+    "SELECT id, user_id, date, time, status FROM appointments" +
+    (whereClause ? ` WHERE ${whereClause}` : "");
+  return all(sql, params);
+}
+
+async function checkCloseAppointments() {
   const now = Date.now();
+  const appointments = await fetchAppointments();
 
   appointments.forEach((appointment) => {
     if (!appointment || appointment.status === "cancelled") return;
@@ -134,7 +146,7 @@ function checkCloseAppointments() {
       diffMs <= CLOSE_NOTIFICATION_WINDOW_MS &&
       !notifiedCloseAppointments.has(appointment.id)
     ) {
-      const sent = sendUserNotification(appointment.userId, {
+      const sent = sendUserNotification(appointment.user_id, {
         title: "Appointment soon",
         message: "Your appointment is within the next 24 hours.",
         appointmentId: appointment.id,
@@ -149,12 +161,12 @@ function checkCloseAppointments() {
   });
 }
 
-function checkCloseAppointmentsForUser(userId) {
+async function checkCloseAppointmentsForUser(userId) {
   const now = Date.now();
+  const appointments = await fetchAppointments("user_id = ?", [userId]);
 
   appointments.forEach((appointment) => {
     if (!appointment || appointment.status === "cancelled") return;
-    if (appointment.userId !== userId) return;
 
     const appointmentTime = new Date(
       `${appointment.date}T${appointment.time}`,
@@ -171,7 +183,7 @@ function checkCloseAppointmentsForUser(userId) {
       diffMs <= CLOSE_NOTIFICATION_WINDOW_MS &&
       !notifiedCloseAppointments.has(appointment.id)
     ) {
-      const sent = sendUserNotification(appointment.userId, {
+      const sent = sendUserNotification(appointment.user_id, {
         title: "Appointment soon",
         message: "Your appointment is within the next 24 hours.",
         appointmentId: appointment.id,

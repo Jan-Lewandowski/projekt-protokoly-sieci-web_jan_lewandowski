@@ -24,6 +24,7 @@ export default function AdminServiceManagement() {
     setEditingServiceDuration,
     setEditingServicePrice,
     saveService,
+    deleteService,
   } = useAdminDashboard();
   const selectedCategory = categories.find(
     (category) => category.id === serviceCategoryId,
@@ -140,12 +141,20 @@ export default function AdminServiceManagement() {
                     </button>
                   </div>
                 ) : (
-                  <button
-                    className="admin-button"
-                    onClick={() => startEditService(service)}
-                  >
-                    Edytuj
-                  </button>
+                  <div className="admin-editor-actions">
+                    <button
+                      className="admin-button"
+                      onClick={() => startEditService(service)}
+                    >
+                      Edytuj
+                    </button>
+                    <button
+                      className="admin-button danger"
+                      onClick={() => deleteService(service.id)}
+                    >
+                      Usuń
+                    </button>
+                  </div>
                 )}
               </td>
             </tr>

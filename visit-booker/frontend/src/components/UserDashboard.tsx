@@ -11,8 +11,7 @@ type UserDashboardProps = {
 };
 
 function UserDashboardContent() {
-  const { categories, categoriesLoading, categoriesError, notifications } =
-    useUserDashboard();
+  const { categories, categoriesError, notifications } = useUserDashboard();
 
   return (
     <div className="user-dashboard">
@@ -20,11 +19,8 @@ function UserDashboardContent() {
 
       <section className="user-section">
         <h3>Wybierz kategorię</h3>
-        {categoriesLoading && <p>Ładowanie kategorii...</p>}
         {categoriesError && <p className="user-error">{categoriesError}</p>}
-        {!categoriesLoading && categories.length === 0 && (
-          <p>Brak kategorii.</p>
-        )}
+        {categories.length === 0 && <p>Brak kategorii.</p>}
         <div className="user-category-grid">
           {categories.map((category) => (
             <Link

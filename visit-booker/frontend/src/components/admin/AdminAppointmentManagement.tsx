@@ -20,6 +20,8 @@ export default function AdminAppointmentManagement() {
     startEditAppointment,
     saveAppointment,
     deleteAppointment,
+    approveEditRequest,
+    rejectEditRequest,
   } = useAdminDashboard();
   const [selectedDate, setSelectedDate] = useState(() =>
     new Date().toISOString().slice(0, 10),
@@ -67,7 +69,11 @@ export default function AdminAppointmentManagement() {
       setSelectedServiceId(null);
       return;
     }
-    setSelectedServiceId((prev) => prev ?? category.services[0].id);
+    setSelectedServiceId((prev) => {
+      if (!prev) return category.services[0].id;
+      const stillValid = category.services.some((service) => service.id === prev);
+      return stillValid ? prev : category.services[0].id;
+    });
   }, [selectedCategoryId, categories]);
 
   const appointmentsForDay = appointments.filter((appointment) => {
@@ -104,6 +110,9 @@ export default function AdminAppointmentManagement() {
     .map((appointment) => appointment.time);
   const availableSlotsForEdit = slots.filter(
     (slot) => !occupiedTimes.includes(slot) || slot === editTime,
+  );
+  const pendingRequests = appointments.filter(
+    (appointment) => appointment.editRequestStatus === "pending",
   );
 
   return (
@@ -163,12 +172,17 @@ export default function AdminAppointmentManagement() {
           );
           const isPast = new Date(`${selectedDate}T${slotTime}`) < now;
           const statusLabel = appointment
-            ? isPast
+            ? appointment.status === "completed"
               ? "Zakończony"
-              : ""
+              : appointment.status === "in_progress"
+                ? "W trakcie"
+                : appointment.status === "cancelled"
+                  ? "Anulowany"
+                  : "Zaplanowany"
             : isPast
               ? "Niedostępny"
               : "";
+          const isEditable = appointment?.status === "scheduled";
           return (
             <div
               key={slotTime}
@@ -183,7 +197,7 @@ export default function AdminAppointmentManagement() {
                     {getServiceName(appointment.categoryId, appointment.serviceId)}
                   </div>
                   {statusLabel && <div>{statusLabel}</div>}
-                  {!isPast && (
+                  {isEditable && (
                     <div className="admin-editor-actions">
                       <button
                         className="admin-button"
@@ -210,6 +224,57 @@ export default function AdminAppointmentManagement() {
         })}
         {slots.length === 0 && (
           <p className="admin-note">Wybierz usługę, aby zobaczyć sloty.</p>
+        )}
+      </div>
+
+      <div className="admin-section">
+        <h4>Prośby o zmianę terminu</h4>
+        {pendingRequests.length === 0 && (
+          <p className="admin-note">Brak oczekujących próśb.</p>
+        )}
+        {pendingRequests.length > 0 && (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Użytkownik</th>
+                <th>Obecny termin</th>
+                <th>Proponowany termin</th>
+                <th>Akcje</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingRequests.map((appointment) => (
+                <tr key={appointment.id}>
+                  <td>{getCategoryName(appointment.categoryId)} /{" "}
+                    {getServiceName(appointment.categoryId, appointment.serviceId)}</td>
+                  <td>{appointment.userId}</td>
+                  <td>
+                    {appointment.date} {appointment.time}
+                  </td>
+                  <td>
+                    {appointment.editRequestedDate} {appointment.editRequestedTime}
+                  </td>
+                  <td>
+                    <div className="admin-editor-actions">
+                      <button
+                        className="admin-button"
+                        onClick={() => approveEditRequest(appointment.id)}
+                      >
+                        Zatwierdź
+                      </button>
+                      <button
+                        className="admin-button danger"
+                        onClick={() => rejectEditRequest(appointment.id)}
+                      >
+                        Odrzuć
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 

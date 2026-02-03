@@ -1,8 +1,20 @@
 import express from "express";
 import bcrypt from "bcrypt";
-import { users } from "../data/users.data.js";
+import { get, run } from "../db/index.js";
 
 const authRouter = express.Router();
+
+authRouter.get("/me", (req, res) => {
+  if (!req.session?.user) {
+    return res.status(401).json({ message: "not authenticated" });
+  }
+
+  res.json({
+    id: req.session.user.id,
+    role: req.session.user.role,
+    email: req.session.user.email,
+  });
+});
 
 authRouter.post("/register", async (req, res) => {
   const { email, password } = req.body;
@@ -11,7 +23,7 @@ authRouter.post("/register", async (req, res) => {
     return res.status(400).json({ message: "email and password required" });
   }
 
-  const exists = users.find(u => u.email === email);
+  const exists = await get("SELECT 1 FROM users WHERE email = ?", [email]);
   if (exists) {
     return res.status(409).json({ message: "user already exists" });
   }
@@ -20,14 +32,21 @@ authRouter.post("/register", async (req, res) => {
 
   const role = req.body.email === "admin@test.pl" ? "admin" : "user"
 
-  const newUser = {
-    id: users.length + 1,
-    email,
-    password: hashedPassword,
-    role: role,
-  };
+  const insertResult = await run(
+    "INSERT INTO users (email, password, role) VALUES (?, ?, ?)",
+    [email, hashedPassword, role],
+  );
+  const newUser = await get(
+    "SELECT id, email, role FROM users WHERE id = ?",
+    [insertResult.lastID],
+  );
 
-  users.push(newUser);
+  const newUserCheck = await get(
+    "SELECT id, password FROM users WHERE email = ? AND password = ?",
+    [email, hashedPassword],
+  );
+
+  console.log(newUserCheck);
 
   req.session.user = {
     id: newUser.id,
@@ -41,7 +60,10 @@ authRouter.post("/register", async (req, res) => {
 authRouter.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  const user = users.find(u => u.email === email);
+  const user = await get(
+    "SELECT id, email, password, role FROM users WHERE email = ?",
+    [email],
+  );
   if (!user) {
     return res.status(401).json({ message: "user not found" });
   }
@@ -60,17 +82,6 @@ authRouter.post("/login", async (req, res) => {
   res.json({ message: "logged in" });
 });
 
-authRouter.get("/me", (req, res) => {
-  if (!req.session?.user) {
-    return res.status(401).json({ message: "not authenticated" });
-  }
-
-  res.json({
-    id: req.session.user.id,
-    role: req.session.user.role,
-    email: req.session.user.email,
-  });
-});
 
 authRouter.post("/logout", (req, res) => {
   req.session.destroy(() => {

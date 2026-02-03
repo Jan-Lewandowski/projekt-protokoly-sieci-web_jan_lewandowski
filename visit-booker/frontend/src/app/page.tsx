@@ -5,19 +5,18 @@ import AdminDashboard from "../components/AdminDashboard";
 import AuthForm from "../components/AuthForm";
 import LogoutBar from "../components/LogoutBar";
 import UserDashboard from "../components/UserDashboard";
-import { API_URL } from "../lib/api";
 
 type AuthState = {
   isAuthenticated: boolean;
-  loading: boolean;
   error: string | null;
   role: "admin" | "user" | null;
 };
 
+const API_URL = "http://localhost:4000";
+
 export default function Home() {
   const [auth, setAuth] = useState<AuthState>({
     isAuthenticated: false,
-    loading: true,
     error: null,
     role: null,
   });
@@ -35,23 +34,21 @@ export default function Home() {
           const data = await res.json();
           setAuth({
             isAuthenticated: true,
-            loading: false,
             error: null,
             role: data.role || null,
           });
           return;
         }
       } catch {
-        // ignore
       }
-      setAuth({ isAuthenticated: false, loading: false, error: null, role: null });
+      setAuth({ isAuthenticated: false, error: null, role: null });
     };
 
     checkAuth();
   }, []);
 
   const handleSubmit = async () => {
-    setAuth((prev) => ({ ...prev, loading: true, error: null }));
+    setAuth((prev) => ({ ...prev, error: null }));
 
     const endpoint = mode === "login" ? "login" : "register";
     try {
@@ -74,24 +71,21 @@ export default function Home() {
         const data = await me.json();
         setAuth({
           isAuthenticated: true,
-          loading: false,
           error: null,
           role: data.role || null,
         });
       } else {
-        setAuth({ isAuthenticated: true, loading: false, error: null, role: null });
+        setAuth({ isAuthenticated: true, error: null, role: null });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
-      setAuth({ isAuthenticated: false, loading: false, error: message, role: null });
+      setAuth({ isAuthenticated: false, error: message, role: null });
     }
   };
 
   return (
     <>
-      {auth.loading && <div />}
-
-      {!auth.loading && auth.isAuthenticated && (
+      {auth.isAuthenticated && (
         <div>
           <LogoutBar
             onLogout={async () => {
@@ -103,7 +97,6 @@ export default function Home() {
               } finally {
                 setAuth({
                   isAuthenticated: false,
-                  loading: false,
                   error: null,
                   role: null,
                 });
@@ -115,7 +108,7 @@ export default function Home() {
         </div>
       )}
 
-      {!auth.loading && !auth.isAuthenticated && (
+      {!auth.isAuthenticated && (
         <AuthForm
           mode={mode}
           email={email}

@@ -23,13 +23,12 @@ type LandingProps = {
 
 export default function Landing({ enabled = true }: LandingProps) {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [serviceId, setServiceId] = useState(1);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
 
-  const { slots, loading, error, refresh } = useAvailableSlots(
+  const { slots, error, refresh } = useAvailableSlots(
     serviceId,
     date,
     enabled,
@@ -38,7 +37,6 @@ export default function Landing({ enabled = true }: LandingProps) {
 
   useEffect(() => {
     if (!enabled) return;
-    setCategoriesLoading(true);
     setCategoriesError(null);
 
     fetch(`${API_URL}/api/categories`, { credentials: "include" })
@@ -61,9 +59,6 @@ export default function Landing({ enabled = true }: LandingProps) {
         const message = err instanceof Error ? err.message : "Unknown error";
         setCategoriesError(message);
       })
-      .finally(() => {
-        setCategoriesLoading(false);
-      });
   }, [enabled]);
 
   useEffect(() => {
@@ -93,7 +88,7 @@ export default function Landing({ enabled = true }: LandingProps) {
           value={categoryId ?? ""}
           onChange={(e) => setCategoryId(Number(e.target.value))}
           className="landing-input"
-          disabled={categoriesLoading || categories.length === 0}
+          disabled={categories.length === 0}
         >
           {categories.length === 0 && (
             <option value="" disabled>
@@ -147,12 +142,10 @@ export default function Landing({ enabled = true }: LandingProps) {
         Odśwież
       </button>
 
-      {categoriesLoading && <p>Ładowanie kategorii...</p>}
       {categoriesError && <p className="landing-error">{categoriesError}</p>}
-      {loading && <p>Ładowanie...</p>}
       {error && <p className="landing-error">Błąd: {error}</p>}
 
-      {!loading && !error && (
+      {!error && (
         <ul>
           {slots.length === 0 && <li>Brak dostępnych slotów</li>}
           {slots.map((slot) => (

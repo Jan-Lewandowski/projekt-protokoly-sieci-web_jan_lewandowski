@@ -7,7 +7,7 @@ import { UserDashboardProvider, useUserDashboard } from "../../../context/UserDa
 import "../../../styles/user-dashboard.css";
 
 function CategoryBookingContent({ categoryId }: { categoryId: number }) {
-  const { categories, categoriesLoading, categoriesError } = useUserDashboard();
+  const { categories, categoriesError } = useUserDashboard();
   const category = categories.find((item) => item.id === categoryId);
 
   return (
@@ -16,7 +16,6 @@ function CategoryBookingContent({ categoryId }: { categoryId: number }) {
         <Link href="/">← Wróć do panelu</Link>
       </div>
       <h2>Rezerwacja: {category?.name ?? `Kategoria #${categoryId}`}</h2>
-      {categoriesLoading && <p>Ładowanie kategorii...</p>}
       {categoriesError && <p className="user-error">{categoriesError}</p>}
       <UserBooking />
     </div>
