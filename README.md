@@ -1,19 +1,19 @@
 # VisitBooker
 
-Aplikacja full‑stack do rezerwacji wizyt z aktualizacjami w czasie rzeczywistym, panelem admina i powiadomieniami e‑mail.
+A full-stack appointment booking application with real-time updates, an admin panel, and email notifications.
 
-## Technologie
+## Technologies
 - Backend: Node.js, Express, SQLite, WebSocket
 - Frontend: Next.js (React)
-- Komunikacja: MQTT (powiadomienia)
-- E‑mail: Nodemailer (Gmail)
+- Communication: MQTT (notifications)
+- E-mail: Nodemailer (Gmail)
 
-## Wymagania
+## Requirements
 - Node.js 18+
-- Broker MQTT (np. Mosquitto) uruchomiony na `mqtt://localhost:1883`
-- Hasło aplikacji Gmail do wysyłki e‑maili
+- MQTT broker (e.g., Mosquitto) running at `mqtt://localhost:1883`
+- Gmail app password for sending emails
 
-## Uruchomienie
+## Running the project
 
 ### 1) Backend
 ```bash
@@ -21,20 +21,20 @@ cd backend
 npm install
 ```
 
-Utwórz plik `.env` w katalogu backend:
+Create a `.env` file in the backend directory:
 ```
 GMAIL_USER=your@gmail.com
 GMAIL_APP_PASSWORD=your_app_password
 ```
-Start backendu:
+Start the backend:
 ```bash
 npm start
 ```
 
-Backend działa pod: http://localhost:4000
+Backend runs at: http://localhost:4000
 
-### 2) Serwis powiadomień MQTT
-W osobnym terminalu:
+### 2) MQTT notification service
+In a separate terminal:
 ```bash
 cd backend/src/mqtt/notificationService
 node index.js
@@ -47,19 +47,19 @@ npm install
 npm run dev
 ```
 
-Frontend działa pod: http://localhost:3000
+Frontend runs at: http://localhost:3000
 
-## Dane i seed
-Plik bazy SQLite jest domyślnie w `backend/data/visit_booker.sqlite`. Najpierw należy dodać foler data do folderu backend.Jeśli plik nie istnieje, schemat i dane startowe są tworzone automatycznie.
+## Data and seed
+The SQLite database file is stored by default at `backend/data/visit_booker.sqlite`. First, add the `data` folder inside the backend directory. If the file does not exist, the schema and seed data are created automatically.
 
-## Funkcje
-- Rejestracja/logowanie z sesjami
-- Przegląd usług i rezerwacja wizyt
-- Aktualizacje w czasie rzeczywistym (WebSocket)
-- Panel admina dla kategorii, usług i wizyt
-- Prośby o zmianę terminu z akceptacją admina
-- Powiadomienia e‑mail przez MQTT + Nodemailer
+## Features
+- Registration/login with sessions
+- Service browsing and appointment booking
+- Real-time updates (WebSocket)
+- Admin panel for categories, services, and appointments
+- Appointment reschedule requests with admin approval
+- Email notifications via MQTT + Nodemailer
 
-## Uwagi
-- Upewnij się, że broker MQTT działa przed uruchomieniem serwisu powiadomień.
-- Jeśli e‑maile nie dochodzą, sprawdź hasło aplikacji Gmail i folder spam.
+## Notes
+- Make sure the MQTT broker is running before starting the notification service.
+- If emails are not delivered, check your Gmail app password and spam folder.
