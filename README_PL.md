@@ -63,3 +63,4 @@ Plik bazy SQLite jest domyślnie w `backend/data/visit_booker.sqlite`. Najpierw 
 ## Uwagi
 - Upewnij się, że broker MQTT działa przed uruchomieniem serwisu powiadomień.
 - Jeśli e‑maile nie dochodzą, sprawdź hasło aplikacji Gmail i folder spam.
+- Dane logowania administratora: login: admin@test.pl, hasło: admin123

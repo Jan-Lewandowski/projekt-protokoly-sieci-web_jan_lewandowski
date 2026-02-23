@@ -15,6 +15,8 @@ let dbInstance;
 export async function getDb() {
   if (dbInstance) return dbInstance;
 
+  await fs.mkdir(path.dirname(dbPath), { recursive: true });
+
   const dbExists = await fs
     .access(dbPath)
     .then(() => true)

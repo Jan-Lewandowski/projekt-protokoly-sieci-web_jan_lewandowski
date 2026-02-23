@@ -1,7 +1,6 @@
 INSERT OR IGNORE INTO users (id, name, email, password, role) VALUES
   (1, 'Admin', 'admin@test.pl', '$2b$10$InYMYkOIiDAV2t6/PMbIbOZmkWFDwqCih4Ojv/rIuAJDaLnOMtA8.', 'admin'),
-  (2, 'Jan Kowalski', 'janekilewandowski1@gmail.com', '$2b$10$4lMbFNLmEJT9b6gVI/ppquvUtFFjQJhlx0KOz5yM/r03ZWFhSJjAa', 'user'),
-  (3, 'Anna Nowak', 'anna@example.com', '$2b$10$4lMbFNLmEJT9b6gVI/ppquvUtFFjQJhlx0KOz5yM/r03ZWFhSJjAa', 'user');
+  (2, 'Anna Nowak', 'anna@example.com', '$2b$10$4lMbFNLmEJT9b6gVI/ppquvUtFFjQJhlx0KOz5yM/r03ZWFhSJjAa', 'user');
 
 INSERT OR IGNORE INTO categories (id, name) VALUES
   (1, 'Włosy'),

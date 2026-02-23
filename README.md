@@ -63,3 +63,4 @@ The SQLite database file is stored by default at `backend/data/visit_booker.sqli
 ## Notes
 - Make sure the MQTT broker is running before starting the notification service.
 - If emails are not delivered, check your Gmail app password and spam folder.
+- Administrator login credentials: username: admin@test.pl, password: admin123
